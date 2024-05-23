@@ -1,0 +1,24 @@
+## Integration with jenkins and creating image and container
+## Git need to be downloaded in server before performing action
+## chmod 777 ///var/run/docker.sock (To connect jenkins with dockerdemeon)
+
+pipeline {
+    agent any
+    stages {
+       stage("code"){
+           steps {
+               git "https://github.com/pudur-saiteja-goud/tic-tac-toe-docker.git"
+           }
+       }
+        stage("build") {
+            steps {
+                sh 'docker build -t jenkins .'
+            }
+        }
+        stage("cont") {
+            steps {
+                sh 'docker run -itd --name sai -p 1444:80 jenkins'
+            }
+        }
+    }
+}
