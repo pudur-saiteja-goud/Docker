@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+    tools {
+        jdk 'jdk'
+        nodejs 'node'
+    }
+    environment {
+        SCANNER_HOME=tool 'sonar'
+    }
+    stages {
+        stage('code') {
+            steps {
+                git 'https://github.com/pudur-saiteja-goud/Zomato-Project.git'
+            }
+        }
+        stage('code quality '){
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=zomato \
+                    -Dsonar.projectKey=zomato '''
+                }
+
+            }
+        }
+        stage('npm install'){
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('ows'){
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'dp'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('rivy'){
+            steps {
+                sh 'trivy fs . > trivyfs.txt'
+                
+            }
+        }    
+        stage('build'){
+            steps{
+                sh 'docker build -t sai7969/ccit:zomato .'
+                
+            }
+        }
+        stage('trivy scan'){
+            steps{
+                sh 'trivy image sai7969/ccit:zomato'
+            }
+        }
+        stage('push'){
+            steps{
+                script{
+                  withDockerRegistry(credentialsId: 'aws') {
+                    sh 'docker push sai7969/ccit:zomato'
+                  }  
+                  
+                }
+                
+                
+            }
+        }
+        stage('run'){
+            steps{
+                sh 'docker run -itd --name zomato -p 3000:3000 sai7969/ccit:zomato'
+            }
+        }
+        
+    }
+}
